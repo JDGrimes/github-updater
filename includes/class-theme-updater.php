@@ -123,62 +123,76 @@ class GitHub_Theme_Updater extends GitHub_Updater {
 
 		foreach ( (array) $this->config as $theme ) {
 			if ( $theme_key !== $theme->repo ) continue;
-			if ( ! isset( $current->response[$theme_key] ) ) continue;        
+			if ( ! isset( $current->response[ $theme_key ] ) && ! isset( $current->up_to_date[ $theme_key ] ) )
+				return false;
 
-			$r = $current->response[ $theme_key ];
 			$wp_list_table = _get_list_table('WP_MS_Themes_List_Table');
+			$themes_allowedtags = array(
+					'a'       => array( 'href' => array(), 'title' => array() ),
+					'abbr'    => array( 'title' => array() ),
+					'acronym' => array( 'title' => array() ),
+					'code'    => array(),
+					'em'      => array(),
+					'strong'  => array(),
+					);
+			$theme_name       = wp_kses( $theme->name, $themes_allowedtags );
+			$details_url      = self_admin_url( "theme-install.php?tab=theme-information&theme=$theme_key&TB_iframe=true&width=270&height=400" );
 
-			$remote_is_newer = ( 1 === version_compare( $theme->remote_version,  $r['new_version']  ) );
+			// not sure how to make this rollback work using core functions
+			if ( isset( $current->up_to_date[$theme_key]) ) {
 
-			if ( $remote_is_newer ) {
-				$r['new_version'] = $theme->remote_version;
-			}
-
-			if ( isset( $r['error'] ) ) {
-				echo '<tr class="plugin-update-tr"><td colspan="' . $wp_list_table->get_column_count() . '" class="plugin-update colspanchange"><div class="update-message update-error">';
-				printf( 'Error with GitHub Updater. %1$s', $r['error'] );
-//			} else if ( isset( $current->up_to_date[$theme_key] ) ) {
-//				$rollback = $current->up_to_date[$theme_key]['rollback'];
-//				echo '<tr class="plugin-update-tr"><td colspan="' . $wp_list_table->get_column_count() . '" class="plugin-update colspanchange"><div class="update-message update-ok">';
-//				echo 'Theme is up-to-date! ';
-//				if ( current_user_can( 'update_themes' ) ) {
-//					if ( count( $rollback ) > 0) {
-//						echo "<strong>Rollback to:</strong> ";
-//						// display last three tags
-//						for ( $i=0; $i<3 ; $i++ ) {
-//							$tag = array_pop($rollback);
-//							if ( empty($tag) ) break;
-//							if ( $i>0 ) echo ", ";
-//							printf( '<a href="%s%s">%s</a>', wp_nonce_url( self_admin_url( 'update.php?action=upgrade-theme&theme=' ) . $theme_key, 'upgrade-theme_' . $theme_key ), '&rollback=' . urlencode($tag), $tag);
-//						}
-//					} else {
-//						echo "No previous tags to rollback to.";
-//					}
-//				}
-			} else {
-				$themes_allowedtags = array( 'a' => array( 'href' => array(),'title' => array() ),'abbr' => array( 'title' => array() ),'acronym' => array( 'title' => array() ),'code' => array(),'em' => array(),'strong' => array() );
-				$theme_name = wp_kses( $theme->name, $themes_allowedtags );
-//				$github_url = esc_url( $r['url'] );
-//				$diff_url   = esc_url( $r['url'] . '/compare/' . $theme->local_version . '...' . $r['new_version'] );
-				$details_url = self_admin_url( "theme-install.php?tab=theme-information&theme=$theme_key&TB_iframe=true&width=270&height=400" );
-
-				echo '<tr class="plugin-update-tr"><td colspan="' . $wp_list_table->get_column_count() . '" class="plugin-update colspanchange"><div class="update-message">';
-				printf( 'GitHub Updater has a new version of %s available. ', $theme_name );
-				printf( '<a class="thickbox" title="'. $theme_name . '" href="%s">View version %s details</a> or ', $details_url, $r['new_version'] );
-
+/*
+				$rollback = $current->up_to_date[$theme_key]['rollback'];
+				echo '<tr class="plugin-update-tr"><td colspan="' . $wp_list_table->get_column_count() . '" class="plugin-update colspanchange"><div class="update-message update-ok">';
+				echo 'Theme is up-to-date! ';
 				if ( current_user_can( 'update_themes' ) ) {
-					if ( empty( $r['package'] ) ) {
-						echo '<em>Automatic update is unavailable for this plugin.</em>';
+					if ( count( $rollback ) > 0 ) {
+						echo "<strong>Rollback to:</strong> ";
+						// display last three tags
+						for ( $i = 0; $i < 3 ; $i++ ) {
+							$tag = array_pop( $rollback );
+							if( empty( $tag ) ) break;
+							if ( $i > 0 ) echo ", ";
+							printf('<a href="%s%s">%s</a>', wp_nonce_url( self_admin_url( 'update.php?action=upgrade-theme&theme=' ) . $theme_key, 'upgrade-theme_' . $theme_key ), '&rollback=' . urlencode( $tag ), $tag);
+						}
 					} else {
-						printf( '<a href="%s">update now</a>.', wp_nonce_url( self_admin_url( 'update.php?action=upgrade-theme&theme=' ) . $theme_key, 'upgrade-theme_' . $theme_key ) );
+						echo "No previous tags to rollback to.";
 					}
 				}
+*/
+
+			} else {
+				$r = $current->response[ $theme_key ];
+				$remote_is_newer = ( 1 === version_compare( $theme->remote_version,  $r['new_version']  ) );
+
+				if ( $remote_is_newer ) {
+					$r['new_version'] = $theme->remote_version;
+				}
+
+				if ( isset( $r['error'] ) ) {
+					echo '<tr class="plugin-update-tr"><td colspan="' . $wp_list_table->get_column_count() . '" class="plugin-update colspanchange"><div class="update-message update-error">';
+					printf( 'Error with GitHub Updater. %1$s', $r['error'] );
+				} else {
+					echo '<tr class="plugin-update-tr"><td colspan="' . $wp_list_table->get_column_count() . '" class="plugin-update colspanchange"><div class="update-message">';
+					printf( 'GitHub Updater has a new version of %s available. ', $theme_name );
+					printf( '<a class="thickbox" title="'. $theme_name . '" href="%s">View version %s details</a> or ', $details_url, $r['new_version'] );
+
+					if ( current_user_can( 'update_themes' ) ) {
+						if ( empty( $r['package'] ) ) {
+							echo '<em>Automatic update is unavailable for this plugin.</em>';
+						} else {
+							printf( '<a href="%s">update now</a>.', wp_nonce_url( self_admin_url( 'update.php?action=upgrade-theme&theme=' ) . $theme_key, 'upgrade-theme_' . $theme_key ) );
+						}
+					}
+
+				}
+				do_action( "in_theme_update_message-$theme_key", $theme, $r );
 			}
-		do_action( "in_theme_update_message-$theme_key", $theme, $r );
-		echo '</div></td></tr>';
+			echo '</div></td></tr>';
+		}
+
 	}
-}
-	
+
 	/**
 	 * Hook into pre_set_site_transient_update_themes to update from GitHub.
 	 *
@@ -205,10 +219,10 @@ class GitHub_Theme_Updater extends GitHub_Updater {
 
 			if ( $remote_is_newer ) {
 				$data->response[ $theme->repo ] = $update;
-			} else {
-				// up-to-date!
-				$data->up_to_date[ $theme->repo ]['rollback'] = $theme->tags;
-				$data->up_to_date[ $theme->repo ]['response'] = $update;
+// 			} else {
+// 				// up-to-date!
+// 				$data->up_to_date[ $theme->repo ]['rollback'] = $theme->tags;
+// 				$data->up_to_date[ $theme->repo ]['response'] = $update;
 			}
 		}
 		return $data;
